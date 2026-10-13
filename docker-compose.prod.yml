@@ -1,0 +1,26 @@
+# layered on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# needs JWT_SECRET, POSTGRES_PASSWORD and SITE_ADDRESS (e.g. tracker.example.com) in the environment or a .env file
+services:
+  db:
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+
+  api:
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+
+  web:
+    restart: unless-stopped
+    ports: !override
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS}
+    volumes:
+      - caddy_data:/data #keeps the https certs across restarts
+
+volumes:
+  caddy_data:

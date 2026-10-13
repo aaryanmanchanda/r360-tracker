@@ -3,16 +3,34 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: tracker
-      POSTGRES_PASSWORD: tracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracker}
       POSTGRES_DB: tracker
     ports:
-      - "5432:5432"
+      - "5432:5432" #handy for psql and the test suite, removed in the prod override
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tracker"]
       interval: 3s
       retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://tracker:${POSTGRES_PASSWORD:-tracker}@db:5432/tracker
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

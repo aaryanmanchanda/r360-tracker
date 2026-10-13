@@ -52,7 +52,7 @@ def require_role(role: Role):
 
     def checker(user: User = Depends(get_current_user)) -> User:
         if user.role != role:
-            raise HTTPException(status_code=403, detail=f"Only a {role.value.title()} can do this.")
+            raise HTTPException(status_code=403, detail=f"Only {role.value.title()}s can do this.")
         return user
 
     return checker
