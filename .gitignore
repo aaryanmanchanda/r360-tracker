@@ -1,0 +1,17 @@
+# assignment brief + JD are private, not part of the submission
+assignment.pdf
+Job Description.pdf
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+
+# local env
+.env
+.DS_Store
