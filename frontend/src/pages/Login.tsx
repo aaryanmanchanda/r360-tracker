@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
+import { Field } from "../components/Field";
 import { FormError } from "../components/FormError";
+import { onSubmit } from "../lib/form";
 
 //same list as backend/app/seed.py, shown so the reviewer can click straight in
 const DEMO_LOGINS = [
@@ -21,8 +23,7 @@ export function Login() {
 
   if (user) return <Navigate to="/" replace />;
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function submit() {
     setSubmitting(true);
     setError(null);
     try {
@@ -38,19 +39,9 @@ export function Login() {
   return (
     <div className="mx-auto mt-24 max-w-sm space-y-4 px-4">
       <h1 className="text-xl font-semibold">Budget → PO → Voucher Tracker</h1>
-      <form onSubmit={handleSubmit} className="card space-y-4">
-        <div>
-          <label className="label" htmlFor="email">
-            Email
-          </label>
-          <input id="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
-        </div>
-        <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
-          <input id="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
+      <form onSubmit={onSubmit(submit)} className="card space-y-4">
+        <Field id="email" label="Email" value={email} onChange={setEmail} autoFocus />
+        <Field id="password" label="Password" type="password" value={password} onChange={setPassword} />
         <FormError error={error} />
         <button className="btn-primary w-full" disabled={submitting}>
           Log in
@@ -58,7 +49,9 @@ export function Login() {
       </form>
 
       <div className="card space-y-2 text-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Demo logins (password {DEMO_PASSWORD})</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          Demo logins (password {DEMO_PASSWORD})
+        </p>
         {DEMO_LOGINS.map((d) => (
           <button
             key={d.email}

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Voucher } from "../api/types";
 import { FormError } from "../components/FormError";
+import { Loading } from "../components/Loading";
 import { VoucherTable } from "../components/VoucherTable";
 
 const TABS = [
@@ -13,7 +14,11 @@ const TABS = [
 
 export function VoucherList() {
   const [status, setStatus] = useState("");
-  const { data: vouchers, error, isLoading } = useQuery({
+  const {
+    data: vouchers,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ["vouchers", status],
     queryFn: () => api<Voucher[]>(`/vouchers${status ? `?status=${status}` : ""}`),
   });
@@ -33,7 +38,7 @@ export function VoucherList() {
         ))}
       </div>
       <div className="card">
-        {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
+        {isLoading && <Loading />}
         <FormError error={error} />
         {vouchers && <VoucherTable vouchers={vouchers} showPo />}
       </div>

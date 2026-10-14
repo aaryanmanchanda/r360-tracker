@@ -8,7 +8,10 @@ export function BalanceBar({ used, total, usedLabel }: { used: string; total: st
   return (
     <div>
       <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
-        <div className={`h-full rounded-full ${full ? "bg-slate-500" : "bg-indigo-500"}`} style={{ width: `${percent}%` }} />
+        <div
+          className={`h-full rounded-full ${full ? "bg-slate-500" : "bg-indigo-500"}`}
+          style={{ width: `${percent}%` }}
+        />
       </div>
       <p className="mt-1.5 text-xs text-slate-500">
         <Money value={used} /> {usedLabel} · {full ? "fully used" : `${percent.toFixed(0)}% used`}

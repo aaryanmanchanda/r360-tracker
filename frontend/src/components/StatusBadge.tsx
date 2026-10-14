@@ -9,7 +9,11 @@ const styles = {
 };
 
 function Pill({ tone, children }: { tone: keyof typeof styles; children: React.ReactNode }) {
-  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${styles[tone]}`}>{children}</span>;
+  return (
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${styles[tone]}`}>
+      {children}
+    </span>
+  );
 }
 
 export function BudgetStatusBadge({ status }: { status: BudgetStatus }) {
