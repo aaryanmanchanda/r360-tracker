@@ -25,6 +25,7 @@ from .models import (
     po_number_seq,
     vrn_number_seq,
 )
+from .money import rupees
 from .schemas import BudgetIn, PurchaseOrderIn, VoucherIn
 
 Row = TypeVar("Row", bound=Base)
@@ -46,10 +47,6 @@ class NotFound(DomainError):
 
 class Conflict(DomainError):
     status_code = 409  # duplicates, e.g. coupon already used
-
-
-def rupees(amount: Decimal) -> str:
-    return f"₹{amount:,.2f}"
 
 
 def _lock(db: Session, model: type[Row], row_id: int, label: str) -> Row:

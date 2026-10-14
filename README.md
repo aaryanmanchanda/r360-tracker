@@ -89,7 +89,16 @@ pnpm install && pnpm dev                    # web on :5173, proxies /api to :800
 
 ```bash
 docker compose up -d db
-cd backend && .venv/bin/pytest -q           # 29 tests, real postgres (creates tracker_test)
+cd backend && .venv/bin/pytest -q           # 35 tests, real postgres (creates tracker_test)
+```
+
+### Code quality gates
+
+CI (`.github/workflows/ci.yml`) runs all of these on every push:
+
+```bash
+cd backend  && ruff check . && ruff format --check . && pytest -q
+cd frontend && pnpm lint && pnpm format:check && pnpm build   # build = tsc type-check + vite
 ```
 
 ### Seeded logins
@@ -138,12 +147,20 @@ is next on my list. **Database: PostgreSQL.** Money needs exact decimals
 ("one VRN per voucher", "coupon codes unique") is best guaranteed by the database
 itself, not just application code.
 
+### Security notes
+
+- Passwords are bcrypt-hashed; tokens are signed JWTs that expire after 8 hours.
+- The seeded demo passwords are shown on the login page **on purpose**, so a reviewer can click straight in. Remove `DEMO_LOGINS` in `frontend/src/pages/Login.tsx` and the seed users before treating this as anything but a demo.
+- `JWT_SECRET` defaults to a dev-only value locally. `docker-compose.prod.yml` refuses to start without a real one.
+- Tokens live in `localStorage` (simple for a single-page app). The trade-off is that XSS could read them, and an `HttpOnly` cookie would be the next hardening step.
+
 ### Decisions worth knowing about
 
 - **Money is `Decimal` / `NUMERIC(14,2)` end to end.** The API sends amounts as strings, the browser never does float maths on them.
 - **Database constraints back up the app rules** (amount > 0, rejection needs a reason, no self-approval, one VRN per voucher). Even a bug in `services.py` can't write bad rows.
 - **Read access is open to both roles.** The brief restricts *actions* by role, not visibility, so any logged-in user can view every record.
-- **PO and VRN numbers come from Postgres sequences** (`PO-00001`, `VRN-00001`), so two concurrent requests can't get the same number.
+- **PO and VRN numbers come from Postgres sequences** (`PO-00001`, `VRN-00001`), so two concurrent requests can't get the same number. A rolled-back insert can leave a gap, which is fine for identifiers.
+- **Error messages use Indian digit grouping** (`₹1,00,000.00`) to match the UI.
 
 ---
 
