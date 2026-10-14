@@ -2,7 +2,7 @@
 second line of defence behind the rules in services.py."""
 
 import enum
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import CheckConstraint, Date, DateTime, Enum, ForeignKey, Numeric, Sequence, String, Text
@@ -10,23 +10,24 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
 
-Money = Numeric(14, 2)  #exact decimals, never float for rupees
+Money = Numeric(14, 2)  # exact decimals, never float for rupees
 
-#postgres sequences hand out PO-00001 / VRN-00001 numbers, gap-safe under concurrency unlike max(id)+1
+# postgres sequences hand out PO-00001 / VRN-00001 numbers. unique under concurrency (max(id)+1 isn't),
+# gaps after a rolled-back insert are normal
 po_number_seq = Sequence("po_number_seq", metadata=Base.metadata)
 vrn_number_seq = Sequence("vrn_number_seq", metadata=Base.metadata)
 
 
 def now():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-class Role(str, enum.Enum):
+class Role(enum.StrEnum):
     REQUESTER = "REQUESTER"
     APPROVER = "APPROVER"
 
 
-class BudgetStatus(str, enum.Enum):
+class BudgetStatus(enum.StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -88,7 +89,7 @@ class Voucher(Base):
     __table_args__ = (CheckConstraint("amount > 0", name="voucher_amount_positive"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    coupon_code: Mapped[str] = mapped_column(String(64), unique=True)  #stored trimmed + uppercase, see services
+    coupon_code: Mapped[str] = mapped_column(String(64), unique=True)  # stored trimmed + uppercase, see services
     purchase_order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"))
     amount: Mapped[Decimal] = mapped_column(Money)
     received_date: Mapped[date] = mapped_column(Date)
@@ -103,7 +104,9 @@ class VoucherReceivedNote(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     vrn_number: Mapped[str] = mapped_column(String(20), unique=True)
-    voucher_id: Mapped[int] = mapped_column(ForeignKey("vouchers.id"), unique=True)  #unique = one VRN per voucher, enforced by the db
+    voucher_id: Mapped[int] = mapped_column(
+        ForeignKey("vouchers.id"), unique=True
+    )  # unique = one VRN per voucher, enforced by the db
     acknowledged_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
     acknowledged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     remarks: Mapped[str | None] = mapped_column(Text)

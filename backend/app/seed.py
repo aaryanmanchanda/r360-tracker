@@ -7,7 +7,7 @@ from .auth import hash_password
 from .db import SessionLocal
 from .models import Role, User
 
-SEED_PASSWORD = "Passw0rd!"  #demo only, listed in the README so the reviewer can log straight in
+SEED_PASSWORD = "Passw0rd!"  # demo only, listed in the README so the reviewer can log straight in
 
 SEED_USERS = [
     ("requester@r360.test", "Riya Requester", Role.REQUESTER),

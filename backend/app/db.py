@@ -6,7 +6,9 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from .config import settings
 
 engine = create_engine(settings.database_url, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  #expire_on_commit off so objects stay readable after commit
+SessionLocal = sessionmaker(
+    bind=engine, expire_on_commit=False
+)  # expire_on_commit off so objects stay readable after commit
 
 
 class Base(DeclarativeBase):
@@ -18,4 +20,4 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()  #always release the connection, even if the request blew up
+        db.close()  # always release the connection, even if the request blew up

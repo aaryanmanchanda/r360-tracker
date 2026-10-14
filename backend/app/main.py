@@ -21,7 +21,7 @@ def domain_error(_: Request, exc: DomainError):
 
 @app.exception_handler(RequestValidationError)
 def validation_error(_: Request, exc: RequestValidationError):
-    #pydantic's default is a nested list, flatten to "field: problem" so the form can print it
+    # pydantic's default is a nested list, flatten to "field: problem" so the form can print it
     problems = [f"{'.'.join(str(p) for p in e['loc'][1:])}: {e['msg']}" for e in exc.errors()]
     return JSONResponse(status_code=422, content={"detail": "; ".join(problems)})
 

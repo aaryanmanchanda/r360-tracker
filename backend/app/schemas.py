@@ -9,35 +9,35 @@ from pydantic import BaseModel, Field, StringConstraints
 
 from .models import BudgetStatus, Role
 
-Amount = Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)]  #positive, 2dp, fits Numeric(14,2)
-Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]  #blank-after-trim is rejected
+Amount = Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)]  # positive, 2dp, fits Numeric(14,2)
+NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]  # blank-after-trim is rejected
 
 
 # ---------- in ----------
 class LoginIn(BaseModel):
-    email: str  #plain str on purpose: a bad login should say "invalid email or password", not a format error
+    email: str  # plain str on purpose: a bad login should say "invalid email or password", not a format error
     password: str
 
 
 class BudgetIn(BaseModel):
-    title: Annotated[Text, Field(max_length=200)]
-    purpose: Text
+    title: Annotated[NonBlank, Field(max_length=200)]
+    purpose: NonBlank
     amount: Amount
 
 
 class RejectIn(BaseModel):
-    reason: Text
+    reason: NonBlank
 
 
 class PurchaseOrderIn(BaseModel):
     budget_id: int
-    vendor_name: Annotated[Text, Field(max_length=200)]
+    vendor_name: Annotated[NonBlank, Field(max_length=200)]
     amount: Amount
 
 
 class VoucherIn(BaseModel):
     purchase_order_id: int
-    coupon_code: Annotated[Text, Field(max_length=64)]
+    coupon_code: Annotated[NonBlank, Field(max_length=64)]
     amount: Amount
     received_date: date
 
@@ -73,7 +73,7 @@ class VoucherOut(BaseModel):
     po_number: str
     amount: Decimal
     received_date: date
-    acknowledged: bool  #true only once a VRN exists
+    acknowledged: bool  # true only once a VRN exists
     vrn: VrnOut | None
 
 
@@ -87,7 +87,7 @@ class PurchaseOrderOut(BaseModel):
     created_by: str
     created_at: datetime
     voucher_total: Decimal
-    remaining: Decimal  #po amount minus vouchers received
+    remaining: Decimal  # po amount minus vouchers received
 
 
 class PurchaseOrderDetailOut(PurchaseOrderOut):
@@ -107,7 +107,7 @@ class BudgetOut(BaseModel):
     decided_by: str | None
     decided_at: datetime | None
     po_total: Decimal
-    remaining: Decimal  #budget amount minus POs raised (only meaningful once approved)
+    remaining: Decimal  # budget amount minus POs raised (only meaningful once approved)
 
 
 class BudgetDetailOut(BudgetOut):

@@ -9,9 +9,7 @@ from ..db import get_db
 from ..models import Role, User
 from ..schemas import PurchaseOrderDetailOut, PurchaseOrderIn
 
-router = APIRouter(
-    prefix="/purchase-orders", tags=["purchase orders"], dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/purchase-orders", tags=["purchase orders"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("", response_model=PurchaseOrderDetailOut, status_code=201)

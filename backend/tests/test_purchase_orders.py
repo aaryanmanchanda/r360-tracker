@@ -1,8 +1,6 @@
 """PO rules: only on an approved budget, and the PO total can never pass the budget."""
 
-
-def raise_po(client, headers, budget_id, amount):
-    return client.post("/api/purchase-orders", headers=headers, json={"budget_id": budget_id, "vendor_name": "Dell", "amount": amount})
+from .helpers import raise_po
 
 
 def test_no_po_on_pending_budget(client, requester):

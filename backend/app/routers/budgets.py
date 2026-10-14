@@ -9,7 +9,9 @@ from ..db import get_db
 from ..models import Role, User
 from ..schemas import BudgetDetailOut, BudgetIn, BudgetOut, RejectIn
 
-router = APIRouter(prefix="/budgets", tags=["budgets"], dependencies=[Depends(get_current_user)])  #every route here needs a login
+router = APIRouter(
+    prefix="/budgets", tags=["budgets"], dependencies=[Depends(get_current_user)]
+)  # every route here needs a login
 
 
 @router.get("", response_model=list[BudgetOut])
@@ -18,9 +20,7 @@ def list_budgets(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=BudgetDetailOut, status_code=201)
-def create_budget(
-    data: BudgetIn, db: Session = Depends(get_db), user: User = Depends(require_role(Role.REQUESTER))
-):
+def create_budget(data: BudgetIn, db: Session = Depends(get_db), user: User = Depends(require_role(Role.REQUESTER))):
     budget = services.create_budget(db, user, data)
     return queries.get_budget(db, budget.id)
 
@@ -31,9 +31,7 @@ def get_budget(budget_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{budget_id}/approve", response_model=BudgetDetailOut)
-def approve_budget(
-    budget_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(Role.APPROVER))
-):
+def approve_budget(budget_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(Role.APPROVER))):
     services.approve_budget(db, user, budget_id)
     return queries.get_budget(db, budget_id)
 

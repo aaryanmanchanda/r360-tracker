@@ -77,7 +77,7 @@ Postgres, the API (migrations + seed run on boot) and the web app all start toge
 docker compose up -d db                     # just postgres on :5432
 
 cd backend
-python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 .venv/bin/alembic upgrade head && .venv/bin/python -m app.seed
 .venv/bin/uvicorn app.main:app --reload     # api on :8000, docs at /docs
 

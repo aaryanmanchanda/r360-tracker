@@ -21,9 +21,7 @@ def list_vouchers(status: Literal["pending", "acknowledged"] | None = None, db: 
 
 
 @router.post("", response_model=VoucherOut, status_code=201)
-def record_voucher(
-    data: VoucherIn, db: Session = Depends(get_db), user: User = Depends(require_role(Role.REQUESTER))
-):
+def record_voucher(data: VoucherIn, db: Session = Depends(get_db), user: User = Depends(require_role(Role.REQUESTER))):
     voucher = services.record_voucher(db, user, data)
     return queries.get_voucher(db, voucher.id)
 

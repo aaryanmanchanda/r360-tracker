@@ -1,8 +1,6 @@
 """Voucher + VRN rules: capped by the PO, unique coupons, one VRN per voucher."""
 
-
-def record(client, headers, po_id, code, amount):
-    return client.post("/api/vouchers", headers=headers, json={"purchase_order_id": po_id, "coupon_code": code, "amount": amount, "received_date": "2026-10-10"})
+from .helpers import record
 
 
 def test_voucher_over_po_is_refused(client, requester, po):

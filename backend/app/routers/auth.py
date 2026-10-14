@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(data: LoginIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == data.email.strip().lower()))
     if user is None or not verify_password(data.password, user.password_hash):
-        #same message for both so we don't leak which emails exist
+        # same message for both so we don't leak which emails exist
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     return LoginOut(token=create_token(user), user=UserOut.model_validate(user, from_attributes=True))
 

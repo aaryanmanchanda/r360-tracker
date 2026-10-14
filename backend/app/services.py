@@ -6,13 +6,15 @@ Every write follows the same shape:
   3. insert + commit (commit releases the lock)
 Without step 1, two requests could both read "10k remaining" and both spend it."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
+from typing import TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from .db import Base
 from .models import (
     BudgetRequest,
     BudgetStatus,
@@ -24,6 +26,8 @@ from .models import (
     vrn_number_seq,
 )
 from .schemas import BudgetIn, PurchaseOrderIn, VoucherIn
+
+Row = TypeVar("Row", bound=Base)
 
 
 class DomainError(Exception):
@@ -41,14 +45,14 @@ class NotFound(DomainError):
 
 
 class Conflict(DomainError):
-    status_code = 409  #duplicates, e.g. coupon already used
+    status_code = 409  # duplicates, e.g. coupon already used
 
 
 def rupees(amount: Decimal) -> str:
     return f"₹{amount:,.2f}"
 
 
-def _lock(db: Session, model, row_id: int, label: str):
+def _lock(db: Session, model: type[Row], row_id: int, label: str) -> Row:
     row = db.scalar(select(model).where(model.id == row_id).with_for_update())
     if row is None:
         raise NotFound(f"{label} {row_id} does not exist.")
@@ -56,7 +60,21 @@ def _lock(db: Session, model, row_id: int, label: str):
 
 
 def _sum(db: Session, column, where) -> Decimal:
-    return db.scalar(select(func.coalesce(func.sum(column), 0)).where(where))  #coalesce so no rows = 0 not None
+    return db.scalar(select(func.coalesce(func.sum(column), 0)).where(where))  # coalesce so no rows = 0 not None
+
+
+def _duplicate_coupon(code: str) -> Conflict:
+    return Conflict(f"Coupon code {code} has already been recorded.")
+
+
+def _ensure_within_cap(amount: Decimal, cap: Decimal, used: Decimal, *, noun: str, parent: str, verb: str) -> None:
+    """The 'totals can never exceed the level above' rule, shared by POs and vouchers."""
+    remaining = cap - used
+    if amount > remaining:
+        raise DomainError(
+            f"This {noun} is {rupees(amount)} but only {rupees(remaining)} remains on {parent} "
+            f"({rupees(used)} of {rupees(cap)} already {verb})."
+        )
 
 
 # ---------- budgets ----------
@@ -67,47 +85,39 @@ def create_budget(db: Session, user: User, data: BudgetIn) -> BudgetRequest:
     return budget
 
 
-def _decidable_budget(db: Session, user: User, budget_id: int) -> BudgetRequest:
+def _decide_budget(
+    db: Session, user: User, budget_id: int, status: BudgetStatus, reason: str | None = None
+) -> BudgetRequest:
     budget = _lock(db, BudgetRequest, budget_id, "Budget")
     if budget.status != BudgetStatus.PENDING:
         raise DomainError(f"This budget is already {budget.status.value.lower()}, it can't be decided again.")
-    if budget.created_by == user.id:  #roles already split this, kept as defence in depth
+    if budget.created_by == user.id:  # roles already split this, kept as defence in depth
         raise DomainError("You can't approve or reject your own budget request.")
+
+    budget.status = status
+    budget.rejection_reason = reason
+    budget.decided_by = user.id
+    budget.decided_at = datetime.now(UTC)
+    db.commit()
     return budget
 
 
 def approve_budget(db: Session, user: User, budget_id: int) -> BudgetRequest:
-    budget = _decidable_budget(db, user, budget_id)
-    budget.status = BudgetStatus.APPROVED
-    budget.decided_by = user.id
-    budget.decided_at = datetime.now(timezone.utc)
-    db.commit()
-    return budget
+    return _decide_budget(db, user, budget_id, BudgetStatus.APPROVED)
 
 
 def reject_budget(db: Session, user: User, budget_id: int, reason: str) -> BudgetRequest:
-    budget = _decidable_budget(db, user, budget_id)
-    budget.status = BudgetStatus.REJECTED
-    budget.rejection_reason = reason
-    budget.decided_by = user.id
-    budget.decided_at = datetime.now(timezone.utc)
-    db.commit()
-    return budget
+    return _decide_budget(db, user, budget_id, BudgetStatus.REJECTED, reason)
 
 
 # ---------- purchase orders ----------
 def create_purchase_order(db: Session, user: User, data: PurchaseOrderIn) -> PurchaseOrder:
-    budget = _lock(db, BudgetRequest, data.budget_id, "Budget")  #lock = no two POs can race past the cap
+    budget = _lock(db, BudgetRequest, data.budget_id, "Budget")  # lock = no two POs can race past the cap
     if budget.status != BudgetStatus.APPROVED:
         raise DomainError(f"POs can only be raised on an approved budget, this one is {budget.status.value.lower()}.")
 
     already_ordered = _sum(db, PurchaseOrder.amount, PurchaseOrder.budget_id == budget.id)
-    remaining = budget.amount - already_ordered
-    if data.amount > remaining:
-        raise DomainError(
-            f"This PO is {rupees(data.amount)} but only {rupees(remaining)} remains on the budget "
-            f"({rupees(already_ordered)} of {rupees(budget.amount)} already ordered)."
-        )
+    _ensure_within_cap(data.amount, budget.amount, already_ordered, noun="PO", parent="the budget", verb="ordered")
 
     po = PurchaseOrder(
         po_number=f"PO-{db.scalar(po_number_seq.next_value()):05d}",
@@ -124,18 +134,13 @@ def create_purchase_order(db: Session, user: User, data: PurchaseOrderIn) -> Pur
 # ---------- vouchers ----------
 def record_voucher(db: Session, user: User, data: VoucherIn) -> Voucher:
     po = _lock(db, PurchaseOrder, data.purchase_order_id, "Purchase order")
-    code = data.coupon_code.upper()  #SAVE10 and save10 are the same coupon
+    code = data.coupon_code.upper()  # SAVE10 and save10 are the same coupon
 
     if db.scalar(select(Voucher.id).where(Voucher.coupon_code == code)):
-        raise Conflict(f"Coupon code {code} has already been recorded.")
+        raise _duplicate_coupon(code)
 
     already_received = _sum(db, Voucher.amount, Voucher.purchase_order_id == po.id)
-    remaining = po.amount - already_received
-    if data.amount > remaining:
-        raise DomainError(
-            f"This voucher is {rupees(data.amount)} but only {rupees(remaining)} remains on {po.po_number} "
-            f"({rupees(already_received)} of {rupees(po.amount)} already received)."
-        )
+    _ensure_within_cap(data.amount, po.amount, already_received, noun="voucher", parent=po.po_number, verb="received")
 
     voucher = Voucher(
         coupon_code=code,
@@ -147,9 +152,9 @@ def record_voucher(db: Session, user: User, data: VoucherIn) -> Voucher:
     db.add(voucher)
     try:
         db.commit()
-    except IntegrityError:  #the unique index caught a race the select above couldn't
+    except IntegrityError:  # the unique index caught a race the select above couldn't
         db.rollback()
-        raise Conflict(f"Coupon code {code} has already been recorded.") from None
+        raise _duplicate_coupon(code) from None
     return voucher
 
 
@@ -163,7 +168,7 @@ def issue_vrn(db: Session, user: User, voucher_id: int, remarks: str | None) -> 
         vrn_number=f"VRN-{db.scalar(vrn_number_seq.next_value()):05d}",
         voucher_id=voucher.id,
         acknowledged_by=user.id,
-        remarks=(remarks or "").strip() or None,  #blank remarks stored as null
+        remarks=(remarks or "").strip() or None,  # blank remarks stored as null
     )
     db.add(vrn)
     db.commit()

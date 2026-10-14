@@ -1,7 +1,7 @@
 """Passwords, JWTs and the two FastAPI dependencies every router leans on:
 get_current_user (who are you) and require_role (are you allowed)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
@@ -13,7 +13,7 @@ from .config import settings
 from .db import get_db
 from .models import Role, User
 
-bearer = HTTPBearer(auto_error=False)  #auto_error off so we return our own 401 message
+bearer = HTTPBearer(auto_error=False)  # auto_error off so we return our own 401 message
 
 
 def hash_password(password: str) -> str:
@@ -25,7 +25,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_token(user: User) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
+    expires = datetime.now(UTC) + timedelta(minutes=settings.jwt_expire_minutes)
     return jwt.encode({"sub": str(user.id), "exp": expires}, settings.jwt_secret, algorithm="HS256")
 
 
@@ -37,11 +37,13 @@ def get_current_user(
     if creds is None:
         raise unauthorized
     try:
-        payload = jwt.decode(creds.credentials, settings.jwt_secret, algorithms=["HS256"])  #checks signature + exp for us
+        payload = jwt.decode(
+            creds.credentials, settings.jwt_secret, algorithms=["HS256"]
+        )  # checks signature + exp for us
     except jwt.PyJWTError:
         raise unauthorized from None
     user = db.get(User, int(payload["sub"]))
-    if user is None:  #token outlived the user
+    if user is None:  # token outlived the user
         raise unauthorized
     return user
 
