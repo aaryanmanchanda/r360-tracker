@@ -149,7 +149,7 @@ def record_voucher(db: Session, user: User, data: VoucherIn) -> Voucher:
         db.commit()
     except IntegrityError:  #the unique index caught a race the select above couldn't
         db.rollback()
-        raise Conflict(f"Coupon code {code} has already been recorded.")
+        raise Conflict(f"Coupon code {code} has already been recorded.") from None
     return voucher
 
 

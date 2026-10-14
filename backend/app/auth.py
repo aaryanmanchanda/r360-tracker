@@ -39,7 +39,7 @@ def get_current_user(
     try:
         payload = jwt.decode(creds.credentials, settings.jwt_secret, algorithms=["HS256"])  #checks signature + exp for us
     except jwt.PyJWTError:
-        raise unauthorized
+        raise unauthorized from None
     user = db.get(User, int(payload["sub"]))
     if user is None:  #token outlived the user
         raise unauthorized
