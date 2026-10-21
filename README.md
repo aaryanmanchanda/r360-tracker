@@ -179,6 +179,17 @@ at all: a bad login should say "Invalid email or password" and nothing more
 (it also avoids revealing which addresses are well-formed), so it's now a plain
 string.
 
+**A second correction, the user flow:** the first UI the AI generated was correct
+but confusing. It was organised around the data model (budget, PO, voucher) rather
+than around what each person is trying to do. Nothing said where a record was in
+Budget → Approval → PO → Voucher → VRN, an Approver had to hunt through two tabs
+for work waiting on them, terms like VRN were never explained, and actions
+finished silently. I noticed this when I clicked through it myself, so I had the
+AI rework it: a progress stepper with a plain "what happens next" line on the
+budget and PO pages, a pending-work count on the Approver's nav (pending items
+sorted first), one-line explanations of voucher and VRN, and a confirmation
+message after every action. No backend rules changed.
+
 **Verified, not trusted:** the `FOR UPDATE` lock was removed on purpose (and restored) to check the
 concurrency test really depends on it. Without the lock, 10 parallel ₹30,000 POs
 all succeeded against a ₹1,00,000 budget. With it, exactly 3 do.
