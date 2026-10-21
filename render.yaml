@@ -1,0 +1,23 @@
+# one-click deploy: render reads this, creates the database and the api, and wires them together
+databases:
+  - name: tracker-db
+    plan: free
+    databaseName: tracker
+    user: tracker
+    postgresMajorVersion: "16" # same major as docker-compose and the test suite
+
+services:
+  - type: web
+    name: tracker-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL # config.py rewrites postgresql:// to the psycopg driver
+        fromDatabase:
+          name: tracker-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
