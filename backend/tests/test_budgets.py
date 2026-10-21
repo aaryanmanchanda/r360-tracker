@@ -41,3 +41,22 @@ def test_cannot_decide_twice(client, approved_budget, approver):
 
 def test_unknown_budget_is_404(client, approver):
     assert client.post("/api/budgets/999/approve", headers=approver).status_code == 404
+
+
+def test_db_refuses_rejected_row_with_null_or_blank_reason(approver):
+    """straight to the table, skipping services: the CHECK itself must hold, NULL included"""
+    import pytest
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    from app.db import engine
+
+    for reason in ("NULL", "'   '"):
+        with pytest.raises(IntegrityError, match="rejection_needs_reason"), engine.begin() as conn:
+            conn.execute(
+                text(
+                    "INSERT INTO budget_requests "
+                    "(title, purpose, amount, status, rejection_reason, created_by, created_at) "
+                    f"VALUES ('t', 'p', 100, 'REJECTED', {reason}, 1, now())"
+                )
+            )

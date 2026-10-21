@@ -47,7 +47,10 @@ class BudgetRequest(Base):
     __tablename__ = "budget_requests"
     __table_args__ = (
         CheckConstraint("amount > 0", name="budget_amount_positive"),
-        CheckConstraint("status <> 'REJECTED' OR length(trim(rejection_reason)) > 0", name="rejection_needs_reason"),
+        # coalesce because a CHECK passes on NULL, so a rejected row with no reason would slip through
+        CheckConstraint(
+            "status <> 'REJECTED' OR length(trim(coalesce(rejection_reason, ''))) > 0", name="rejection_needs_reason"
+        ),
         CheckConstraint("decided_by IS NULL OR decided_by <> created_by", name="no_self_approval"),
     )
 
