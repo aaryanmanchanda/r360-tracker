@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api/client";
+import type { BudgetDetail } from "../api/types";
 import { useApiMutation } from "../api/useApiMutation";
 import { onSubmit } from "../lib/form";
 import { Field } from "./Field";
@@ -11,11 +12,14 @@ export function CreateBudgetForm() {
   const [amount, setAmount] = useState("");
 
   const create = useApiMutation(
-    () => api("/budgets", { method: "POST", body: { title, purpose, amount } }),
-    () => {
-      setTitle("");
-      setPurpose("");
-      setAmount("");
+    () => api<BudgetDetail>("/budgets", { method: "POST", body: { title, purpose, amount } }),
+    {
+      onDone: () => {
+        setTitle("");
+        setPurpose("");
+        setAmount("");
+      },
+      success: (b) => `Budget "${b.title}" submitted. It's now waiting for an Approver.`,
     },
   );
 

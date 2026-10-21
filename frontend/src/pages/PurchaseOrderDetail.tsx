@@ -4,11 +4,14 @@ import { api } from "../api/client";
 import type { PurchaseOrderDetail as PurchaseOrderDetailType } from "../api/types";
 import { BalanceBar } from "../components/BalanceBar";
 import { FormError } from "../components/FormError";
+import { Hint } from "../components/Hint";
 import { Loading } from "../components/Loading";
+import { ProgressSteps } from "../components/ProgressSteps";
 import { RecordVoucherForm } from "../components/RecordVoucherForm";
 import { RoleGate } from "../components/RoleGate";
 import { StatTile } from "../components/StatTile";
 import { VoucherTable } from "../components/VoucherTable";
+import { poProgress } from "../lib/progress";
 
 export function PurchaseOrderDetail() {
   const { id } = useParams();
@@ -34,7 +37,13 @@ export function PurchaseOrderDetail() {
           {po.po_number} <span className="font-normal text-slate-500">· {po.vendor_name}</span>
         </h1>
         <p className="mt-1 text-xs text-slate-500">Raised by {po.created_by}</p>
+        <Hint>
+          The vendor sends vouchers (coupon codes) against this PO. Each one is recorded here, then an Approver issues a
+          VRN (Voucher Received Note) to confirm it arrived.
+        </Hint>
       </div>
+
+      <ProgressSteps progress={poProgress(po)} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile label="PO amount" value={po.amount} />

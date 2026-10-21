@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Voucher } from "../api/types";
+import { useAuth } from "../auth/useAuth";
 import { FormError } from "../components/FormError";
+import { Hint } from "../components/Hint";
 import { Loading } from "../components/Loading";
 import { VoucherTable } from "../components/VoucherTable";
 
@@ -13,7 +15,8 @@ const TABS = [
 ];
 
 export function VoucherList() {
-  const [status, setStatus] = useState("");
+  const { user } = useAuth();
+  const [status, setStatus] = useState(user?.role === "APPROVER" ? "pending" : ""); //approvers come to clear the queue
   const {
     data: vouchers,
     error,
@@ -25,7 +28,13 @@ export function VoucherList() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold">Vouchers</h1>
+      <div>
+        <h1 className="text-xl font-semibold">Vouchers</h1>
+        <Hint>
+          A voucher is a coupon code a vendor delivered against a PO. A VRN (Voucher Received Note) is the Approver's
+          confirmation that it arrived. Vouchers are recorded from their PO's page.
+        </Hint>
+      </div>
       <div className="flex gap-2">
         {TABS.map((tab) => (
           <button

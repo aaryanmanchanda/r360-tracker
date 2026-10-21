@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { api } from "../api/client";
-import type { BudgetDetail } from "../api/types";
+import type { BudgetDetail, PurchaseOrderDetail } from "../api/types";
 import { useApiMutation } from "../api/useApiMutation";
 import { onSubmit } from "../lib/form";
+import { rupees } from "../lib/rupees";
 import { Field } from "./Field";
 import { FormError } from "./FormError";
 import { Money } from "./Money";
@@ -12,10 +13,17 @@ export function RaisePoForm({ budget }: { budget: BudgetDetail }) {
   const [amount, setAmount] = useState("");
 
   const raise = useApiMutation(
-    () => api("/purchase-orders", { method: "POST", body: { budget_id: budget.id, vendor_name: vendor, amount } }),
-    () => {
-      setVendor("");
-      setAmount("");
+    () =>
+      api<PurchaseOrderDetail>("/purchase-orders", {
+        method: "POST",
+        body: { budget_id: budget.id, vendor_name: vendor, amount },
+      }),
+    {
+      onDone: () => {
+        setVendor("");
+        setAmount("");
+      },
+      success: (po) => `${po.po_number} raised for ${rupees(po.amount)}. Next: record its vouchers as they arrive.`,
     },
   );
 

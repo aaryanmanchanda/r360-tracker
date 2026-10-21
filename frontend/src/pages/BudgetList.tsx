@@ -6,6 +6,7 @@ import { useAuth } from "../auth/useAuth";
 import { CreateBudgetForm } from "../components/CreateBudgetForm";
 import { DecisionButtons } from "../components/DecisionButtons";
 import { FormError } from "../components/FormError";
+import { Hint } from "../components/Hint";
 import { Loading } from "../components/Loading";
 import { Money } from "../components/Money";
 import { RoleGate } from "../components/RoleGate";
@@ -19,9 +20,20 @@ export function BudgetList() {
     isLoading,
   } = useQuery({ queryKey: ["budgets"], queryFn: () => api<Budget[]>("/budgets") });
 
+  //approvers come here to decide things, so what's waiting for them goes first (sort is stable, order otherwise kept)
+  const needsMe = (b: Budget) => user?.role === "APPROVER" && b.status === "PENDING" && b.created_by_id !== user.id;
+  const rows = budgets && [...budgets].sort((a, b) => Number(needsMe(b)) - Number(needsMe(a)));
+
   return (
     <>
-      <h1 className="text-xl font-semibold">Budget requests</h1>
+      <div>
+        <h1 className="text-xl font-semibold">Budget requests</h1>
+        <Hint>
+          {user?.role === "APPROVER"
+            ? "Requests waiting for your decision are listed first. Open one to see its purchase orders."
+            : "Ask for money here. Once an Approver approves a request, you can raise purchase orders against it."}
+        </Hint>
+      </div>
       <RoleGate role="REQUESTER">
         <CreateBudgetForm />
       </RoleGate>
@@ -46,8 +58,8 @@ export function BudgetList() {
               </tr>
             </thead>
             <tbody>
-              {budgets.map((b) => (
-                <tr key={b.id}>
+              {rows?.map((b) => (
+                <tr key={b.id} className={needsMe(b) ? "bg-amber-50" : undefined}>
                   <td>
                     <Link className="font-medium text-indigo-600 hover:underline" to={`/budgets/${b.id}`}>
                       {b.title}

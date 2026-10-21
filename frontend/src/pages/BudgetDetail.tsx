@@ -4,12 +4,14 @@ import { api } from "../api/client";
 import type { BudgetDetail as BudgetDetailType } from "../api/types";
 import { BalanceBar } from "../components/BalanceBar";
 import { FormError } from "../components/FormError";
+import { ProgressSteps } from "../components/ProgressSteps";
 import { Loading } from "../components/Loading";
 import { Money } from "../components/Money";
 import { RaisePoForm } from "../components/RaisePoForm";
 import { RoleGate } from "../components/RoleGate";
 import { StatTile } from "../components/StatTile";
 import { BudgetStatusBadge } from "../components/StatusBadge";
+import { budgetProgress } from "../lib/progress";
 
 export function BudgetDetail() {
   const { id } = useParams();
@@ -43,6 +45,8 @@ export function BudgetDetail() {
           {budget.decided_by && ` · ${budget.status.toLowerCase()} by ${budget.decided_by}`}
         </p>
       </div>
+
+      <ProgressSteps progress={budgetProgress(budget)} />
 
       {budget.status === "REJECTED" && (
         <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">

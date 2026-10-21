@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { api } from "../api/client";
-import type { PurchaseOrderDetail } from "../api/types";
+import type { PurchaseOrderDetail, Voucher } from "../api/types";
 import { useApiMutation } from "../api/useApiMutation";
 import { onSubmit, today } from "../lib/form";
+import { rupees } from "../lib/rupees";
 import { Field } from "./Field";
 import { FormError } from "./FormError";
 import { Money } from "./Money";
@@ -14,13 +15,16 @@ export function RecordVoucherForm({ po }: { po: PurchaseOrderDetail }) {
 
   const record = useApiMutation(
     () =>
-      api("/vouchers", {
+      api<Voucher>("/vouchers", {
         method: "POST",
         body: { purchase_order_id: po.id, coupon_code: code, amount, received_date: received },
       }),
-    () => {
-      setCode("");
-      setAmount("");
+    {
+      onDone: () => {
+        setCode("");
+        setAmount("");
+      },
+      success: (v) => `Voucher ${v.coupon_code} (${rupees(v.amount)}) recorded. An Approver can now issue its VRN.`,
     },
   );
 

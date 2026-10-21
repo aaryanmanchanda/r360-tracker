@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api/client";
+import type { Voucher } from "../api/types";
 import { useApiMutation } from "../api/useApiMutation";
 import { FormError } from "./FormError";
 
@@ -8,7 +9,12 @@ export function IssueVrn({ voucherId }: { voucherId: number }) {
   const [open, setOpen] = useState(false);
   const [remarks, setRemarks] = useState("");
 
-  const issue = useApiMutation(() => api(`/vouchers/${voucherId}/vrn`, { method: "POST", body: { remarks } }));
+  const issue = useApiMutation(
+    () => api<Voucher>(`/vouchers/${voucherId}/vrn`, { method: "POST", body: { remarks } }),
+    {
+      success: (v) => `${v.vrn?.vrn_number} issued for voucher ${v.coupon_code}.`,
+    },
+  );
 
   if (!open)
     return (

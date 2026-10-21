@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api/client";
+import type { BudgetDetail } from "../api/types";
 import { useApiMutation } from "../api/useApiMutation";
 import { FormError } from "./FormError";
 
@@ -8,8 +9,18 @@ export function DecisionButtons({ budgetId }: { budgetId: number }) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
 
-  const decide = useApiMutation((action: "approve" | "reject") =>
-    api(`/budgets/${budgetId}/${action}`, { method: "POST", body: action === "reject" ? { reason } : undefined }),
+  const decide = useApiMutation(
+    (action: "approve" | "reject") =>
+      api<BudgetDetail>(`/budgets/${budgetId}/${action}`, {
+        method: "POST",
+        body: action === "reject" ? { reason } : undefined,
+      }),
+    {
+      success: (b) =>
+        b.status === "APPROVED"
+          ? `"${b.title}" approved. The requester can now raise POs.`
+          : `"${b.title}" rejected. The requester will see your reason.`,
+    },
   );
 
   if (!rejecting)

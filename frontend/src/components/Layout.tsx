@@ -1,5 +1,6 @@
 import { Link, NavLink, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { NavCount } from "./NavCount";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-1.5 text-sm font-medium ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100"}`;
@@ -20,9 +21,11 @@ export function Layout() {
           <nav className="flex gap-1">
             <NavLink to="/" end className={navClass}>
               Budgets
+              <NavCount of="budgets" />
             </NavLink>
             <NavLink to="/vouchers" className={navClass}>
               Vouchers
+              <NavCount of="vouchers" />
             </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm">
