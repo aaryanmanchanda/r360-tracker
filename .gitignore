@@ -16,3 +16,6 @@ dist/
 .env
 .DS_Store
 assignment.md
+
+# personal study notes, deploy steps and demo script stay local
+docs/
